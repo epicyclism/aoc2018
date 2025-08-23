@@ -6,24 +6,54 @@
 
 #include <fmt/format.h>
 
-#include "ctre_inc.h"
 #include "timer.h"
 
 auto get_input()
 {
-	return 0;
+	std::string ln;
+	std::getline(std::cin, ln);
+	return ln;
 }
 
-int64_t pt1(auto const& in_addr_t)
+bool eq(char l, char r)
+{
+	return (l & 0x1f) == (r & 0x1f) && (l & 0xe0) != (r & 0xe0);
+}
+
+int64_t react(std::string s)
+{
+	auto it = s.begin();
+	while((it = std::ranges::adjacent_find(s, eq)) != s.end())
+		s.erase(it, it + 2);
+	return s.size();
+}
+
+int64_t react2(std::string s, char c)
+{
+	std::erase_if(s, [=](auto c1){ return !((c ^ c1) & 0x1f);});
+	auto it = s.begin();
+	while((it = std::ranges::adjacent_find(s, eq)) != s.end())
+		s.erase(it, it + 2);
+	return s.size();
+}
+
+int64_t pt1(auto const& in)
 {
 	timer t("p1");
-	return 0;
+	return react(in);
 }
 
 int64_t pt2(auto const& in)
 {
 	timer t("p2");
-	return 0;
+	int64_t mn = in.size();
+	for(char rc = 'a'; rc <= 'z'; ++rc)
+	{
+		auto m = react2(in, rc);
+		if( m < mn)
+			mn = m;
+	}
+	return mn;
 }
 
 int main()
