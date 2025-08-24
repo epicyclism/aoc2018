@@ -5,6 +5,7 @@
 #include <ranges>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include "timer.h"
 
@@ -35,57 +36,6 @@ int64_t react2(std::string s, char c)
 	while((it = std::ranges::adjacent_find(s, eq)) != s.end())
 		s.erase(it, it + 2);
 	return s.size();
-}
-
-char * advance(char * p)
-{
-	++p;
-	while(*p && *p == ' ')
-		++p;
-	return p;
-}
-
-template<typename BP> std::pair<char*, char*> adjacent_find(char* first, BP p)
-{
-    if (!*first)
-        return {first, first};
- 
-    auto next = advance(first);
- 
-    for (; *next; next = advance(next), first = advance(first))
-        if (p(*first, *next))
-            return {first, next};
- 
-    return {next, next};
-}
-
-int64_t reactx(std::string s)
-{
-	auto i = s.data();
-	while(1)
-	{
-		auto[b, e] = adjacent_find(i, eq);
-		if(b == e)
-			break;
-		*b = ' ';
-		*e = ' ';
-	}
-	return std::ranges::count_if(s, [](auto c){return c != ' ';});
-}
-
-int64_t react2x(std::string s, char c)
-{
-	std::erase_if(s, [=](auto c1){ return !((c ^ c1) & 0x1f);});
-	auto i = s.data();
-	while(1)
-	{
-		auto[b, e] = adjacent_find(i, eq);
-		if(b == e)
-			break;
-		*b = ' ';
-		*e = ' ';
-	}
-	return std::ranges::count_if(s, [](auto c){return c != ' ';});
 }
 
 int64_t pt1(auto const& in)
