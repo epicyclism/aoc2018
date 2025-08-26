@@ -56,7 +56,7 @@ std::string topo_sort(auto in)
 		for(int c = 0; c < in.size(); ++c)
 		{
 			auto& a = in[c];
-			if(a.active_ && std::ranges::none_of(a.depends_, [](auto b){return b;}))
+			if(a.active_ && std::ranges::none_of(a.depends_, std::identity()))
 			{
 				s.push_back(c + 'A');
 				for(auto& d : in)
@@ -93,7 +93,7 @@ int topo_sort2(auto in)
 		for(int c = 0; c < in.size(); ++c)
 		{
 			auto& a = in[c];
-			if(wkrs < mx_wkrs && a.time_ && !a.active_ && std::ranges::none_of(a.depends_, [](auto b){return b;}))
+			if(wkrs < mx_wkrs && a.time_ && !a.active_ && std::ranges::none_of(a.depends_, std::identity()))
 			{
 				++wkrs;
 				a.active_ = true;
