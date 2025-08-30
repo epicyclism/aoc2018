@@ -26,6 +26,15 @@ int grid(int x, int y, int z, int serial)
 	return r;
 }
 
+int grid_add(int x, int y, int z, int p, int serial)
+{
+	for(int dy = 0; dy < z; ++dy)
+		p += power(x + z - 1, y + dy, serial);
+	for(int dx = 0; dx < z; ++dx)
+		p += power(x + dx, y + z - 1, serial);
+	return p;
+}
+
 auto pt1(auto in)
 {
 	timer t("p1");
@@ -56,9 +65,10 @@ auto pt2(auto in)
 	for(int x = 1; x < 301; ++x)
 		for(int y = 1; y < 301; ++y)
 		{
-			for(int s = 1; s < std::min(301 - x, 301 - y); ++s)
+			auto p = grid(x, y, 1, in);
+			for(int s = 2; s < std::min(301 - x, 301 - y); ++s)
 			{
-				auto p = grid(x, y, s, in);
+				p = grid_add(x, y, s, p, in);
 				if( p > mp)
 				{
 					mp = p;
