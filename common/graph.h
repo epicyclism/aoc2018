@@ -49,7 +49,7 @@ template<typename D, typename P = vertex_id_t> struct result_recorder_distance_p
     using return_type = std::pair<std::vector<D>, std::vector<P>>;
     return_type rv;
 //    result_recorder_distance_previous(size_t sz) : rv ( std::piecewise_construct, std::forward_as_tuple( sz, -1), std::forward_as_tuple(sz, -1))
-    result_recorder_distance_previous(size_t sz) : rv ( std::piecewise_construct, std::forward_as_tuple( sz, -1), std::forward_as_tuple(sz))
+    result_recorder_distance_previous(size_t sz) : rv ( std::piecewise_construct, std::forward_as_tuple( sz, -1), std::forward_as_tuple(sz, -1))
     {}    
     void set_distance(vertex_id_t v, vertex_id_t u)
     {
@@ -62,6 +62,10 @@ template<typename D, typename P = vertex_id_t> struct result_recorder_distance_p
     void set_previous(vertex_id_t v, P u)
     {
         rv.second[v] = u;
+    }
+    auto get_previous(vertex_id_t v) const
+    {
+        return rv.second[v];
     }
 };
 
@@ -76,7 +80,7 @@ auto bfs(G const& g, vertex_id_t id_from)
     std::vector<bool>       visited(g.size());
     std::queue<vertex_id_t> q;
     q.push(id_from);
-    recorder.set_distance(id_from, id_from);
+    recorder.set_distance(id_from, id_from); 
     visited[id_from] = true;
     while (!q.empty())
     {
@@ -366,6 +370,52 @@ public:
         if (vp_(v + stride_))
             rv.emplace_back(v + stride_);
      return rv;
+    }
+    size_t size() const
+    {
+        return data_.size();
+    }
+    size_t stride () const
+    {
+        return stride_;
+    }
+    T value(vertex_id_t v) const
+    {
+        return data_[v];
+    }
+};
+
+// plain grid wrap for mazes etc.
+// assumes a border
+// provide a fn to determine whether a node is valid.
+// fn of form bool V(T to)
+// checks up/left/right/down, IOW 'reading order'
+//
+template<typename T, typename V> class grid_direct_border_ro
+{
+private:
+    const std::vector<T>& data_;
+    const size_t stride_;
+    const V vp_;
+public:
+    grid_direct_border_ro(std::vector<T> const& d, size_t s, V vp) : data_{ d }, stride_{ s }, vp_{ vp }
+    {}
+    std::vector<vertex_id_t> operator[](vertex_id_t v) const
+    {
+        std::vector<vertex_id_t> rv;
+        // up
+        if (vp_(v - stride_))
+            rv.emplace_back(v - stride_);
+        // left
+        if ( vp_(v - 1))
+            rv.emplace_back(v - 1);
+        // right
+        if (vp_(v + 1))
+            rv.emplace_back(v + 1);
+        // down
+        if (vp_(v + stride_))
+            rv.emplace_back(v + stride_);
+        return rv;
     }
     size_t size() const
     {
