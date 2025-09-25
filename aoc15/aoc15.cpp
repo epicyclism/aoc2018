@@ -50,11 +50,14 @@ void dump(std::vector<unit_t> const& units)
 			fmt::println("{} {} {} {}", u.type_, u.pos_, u.attack_power_, u.hit_points_ );
 }
 
-auto get_units(std::vector<char> const& v)
+auto get_units(std::vector<char> const& v, int hp)
 {
 	std::vector<unit_t> rv;
 	for(auto p = 0; p < v.size(); ++p)
-		if( v[p] == 'E'|| v[p] == 'G')
+		if( v[p] == 'E')
+			rv.emplace_back(p, hp, 200, v[p]);
+		else
+		if(v[p] == 'G')
 			rv.emplace_back(p, 3, 200, v[p]);
 	return rv;
 }
@@ -134,18 +137,16 @@ void move(unit_t& u, std::vector<unit_t>& units, size_t stride, std::vector<char
 	u.pos_ = x;
 }
 
-bool no_opponents(unit_t const& u, std::vector<unit_t> const& units)
+bool no_opponents(char type, std::vector<unit_t> const& units)
 {
-	if(u.type_ == 'E')
+	if(type == 'E')
 		return std::ranges::count_if(units, [](auto& u2){ return u2.type_ == 'G' && u2.hit_points_ > 0;} ) == 0;
 	return std::ranges::count_if(units, [](auto& u2){ return u2.type_ == 'E'&& u2.hit_points_ > 0;} ) == 0;
 }
 
-int64_t pt1(auto in)
+auto proc(size_t stride, std::vector<char> grid, int hp)
 {
-	timer t("p1");
-	auto[stride, grid] = in;
-	auto units = get_units(grid);
+	auto units = get_units(grid, hp);
 	int rnd = 0;
 	while(1)
 	{
@@ -154,7 +155,7 @@ int64_t pt1(auto in)
 			if(u.hit_points_ <= 0)
 				continue;
 			// any opponents?
-			if(no_opponents(u, units))
+			if(no_opponents(u.type_, units))
 				goto bail;
 			// can attack immediately?
 			if(!press_attack(u, units, stride, grid))
@@ -169,14 +170,35 @@ int64_t pt1(auto in)
 		++rnd;
 	}
 bail:
-//	dump(stride, grid);
-//	dump(units);
+#if 0
+	fmt::println("rnd {}", rnd);
+	dump(stride, grid);
+	dump(units);
+#endif
+	return std::make_pair(rnd, units);
+}
+
+int64_t pt1(auto const& in)
+{
+	timer t("p1");
+	auto[stride, grid] = in;
+	auto[rnd, units] = proc(stride, grid, 3);
 	return rnd * std::ranges::fold_left(units, 0, [](auto l, auto& r){ return l + (r.hit_points_ > 0 ? r.hit_points_ : 0);});
 }
 
 int64_t pt2(auto const& in)
 {
 	timer t("p2");
+	auto[stride, grid] = in;
+	auto elf_count = std::ranges::count(grid, 'E');
+	int hp = 4;
+	while(1)
+	{
+		auto[rnd, units] = proc(stride, grid, hp);
+		if(std::ranges::count_if(units, [](auto& u){ return u.type_ == 'E' && u.hit_points_ > 0;}) == elf_count)
+			return rnd * std::ranges::fold_left(units, 0, [](auto l, auto& r){ return l + (r.hit_points_ > 0 ? r.hit_points_ : 0);});
+		++hp;
+	}
 	return 0;
 }
 
