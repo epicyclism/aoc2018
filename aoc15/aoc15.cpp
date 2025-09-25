@@ -62,9 +62,8 @@ auto get_units(std::vector<char> const& v)
 size_t unit_from_pos(std::vector<unit_t> const& units, vertex_id_t p)
 {
 	for(size_t n = 0; n < units.size(); ++n)
-		if(units[n].pos_ == p)
+		if(units[n].pos_ == p && units[n].hit_points_ > 0)
 			return n;
-	fmt::println("unit_from_pos {} not found", p);
 	return -1;
 }
 
@@ -84,17 +83,10 @@ bool press_attack(unit_t const& u, std::vector<unit_t>& units, size_t stride, st
 	if(adj.empty())
 		return false;
 	std::ranges::stable_sort(adj, [&](auto l, auto r){ return units[unit_from_pos(units, l)].hit_points_ < units[unit_from_pos(units, r)].hit_points_;});
-//	fmt::println("{} attacks one of {}", u.pos_, fmt::join(adj, " "));
-//	dump(units);
 	auto enemy_pos = unit_from_pos(units, adj[0]);
-	fmt::println("{} {} {}", adj[0], enemy_pos, units[enemy_pos].hit_points_);
 	units[enemy_pos].hit_points_ -= u.attack_power_;
 	if(units[enemy_pos].hit_points_ <= 0)
-	{
 		grid[adj[0]] = '.';
-//		fmt::println("unit {} at {} dies ({})", enemy_pos, adj[0], units[enemy_pos].hit_points_);
-//	dump(units);
-	}
 	return true;
 }
 
@@ -124,9 +116,6 @@ void move(unit_t& u, std::vector<unit_t>& units, size_t stride, std::vector<char
 	std::erase_if(tgts, [&](auto l){ return d[l] == -1;});
 	if(tgts.empty())
 		return;
-	fmt::println("move {} -> {}", u.pos_, fmt::join(tgts, ", "));
-//	for(int i = 0; i < p.size(); ++i)
-//		fmt::println("{} -> {} {}", i, p[i], d[i]);
 	std::ranges::sort(tgts, [&](auto l, auto r)
 	{
 		if(d[l] == d[r])
@@ -137,11 +126,9 @@ void move(unit_t& u, std::vector<unit_t>& units, size_t stride, std::vector<char
 	if(tgts[0] == -1) // can't happen?
 		return;
 	// trace the path back from tgts[0] and take the first step
-	fmt::println("heading for {}", tgts[0]);
 	auto x = tgts[0];
 	while(p[x] != u.pos_)
 		x = p[x];
-	fmt::println("move {} to {}", u.pos_, x);
 	grid[u.pos_] = '.';
 	grid[x] = u.type_;
 	u.pos_ = x;
@@ -162,9 +149,6 @@ int64_t pt1(auto in)
 	int rnd = 0;
 	while(1)
 	{
-		fmt::println("{}", rnd);
-		dump(stride, grid);
-		dump(units);
 		for(auto& u: units)
 		{
 			if(u.hit_points_ <= 0)
@@ -185,8 +169,8 @@ int64_t pt1(auto in)
 		++rnd;
 	}
 bail:
-	dump(stride, grid);
-	dump(units);
+//	dump(stride, grid);
+//	dump(units);
 	return rnd * std::ranges::fold_left(units, 0, [](auto l, auto& r){ return l + (r.hit_points_ > 0 ? r.hit_points_ : 0);});
 }
 
