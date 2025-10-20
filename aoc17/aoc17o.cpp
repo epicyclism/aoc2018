@@ -70,7 +70,6 @@ auto get_input()
 	}
 	mnx -= 1;
 	mxx += 1;
-//	mxy += 1;
 	mny -= 1;
 	for(auto& i : vi)
 		offset(i, -mnx, -mny);
@@ -97,7 +96,7 @@ void print (std::vector<char> const& v, int stride, int step)
 	int cnt = 0;
 	while(cnt < v.size())
 	{
-		fmt::println("{:>6} {}", cnt, fmt::join(std::ranges::subrange(v.begin() + cnt,  v.begin() + cnt + stride), ""));
+		fmt::println("{} {}", cnt, fmt::join(std::ranges::subrange(v.begin() + cnt,  v.begin() + cnt + stride), ""));
 		cnt += stride;
 	}
 }
@@ -108,59 +107,43 @@ constexpr vertex_id_t invalid_vertex_id = vertex_id_t(-1);
 template<typename T> class grid_custom
 {
 private:
-    std::vector<T>& data_;
+    const std::vector<T>& data_;
     const size_t stride_;
 	int lr_;
 public:
-    grid_custom(std::vector<T>& d, size_t s) : data_(d), stride_(s), lr_(0)
+    grid_custom(std::vector<T> const& d, size_t s) : data_(d), stride_(s), lr_(0)
     {}
 	void reset()
 	{
 		lr_ = 0;
 	}
-	vertex_id_t up(vertex_id_t f)
-	{
-		if(f < stride_)
-			return invalid_vertex_id;
-		return f - stride_;
-	}
-	vertex_id_t down(vertex_id_t f)
-	{
-		if(f + stride_ >= data_.size())
-			return invalid_vertex_id;
-		return f + stride_;
-	}
-	// assume straight down is already precluded...
-	std::pair<vertex_id_t, bool> left(vertex_id_t f)
-	{
-		auto d = down(f);
-		if(d == invalid_vertex_id)
-			return {f, false};
-		auto l = f;
-		while(data_[l] != '#' && data_[d] != '.' && data_[d] != '|' )
+	// never more than one option! -1 for none
+    vertex_id_t operator[](vertex_id_t v)
+    {
+		if(v + stride_ >= data_.size())
+			return invalid_vertex_id; // can't look down, so no more.
+		// down
+        if (value(v + stride_) == '.')
 		{
-			--l;	
-			d = down(l);
+			lr_ = 0;
+            return v + stride_;
 		}
-		if(data_[l] == '#')
-			return {l + 1, true};
-		return {l, false};
-	}
-	std::pair<vertex_id_t, bool> right(vertex_id_t f)
-	{
-		auto d = down(f);
-		if(d == invalid_vertex_id)
-			return {f, false};
-		auto r = f;
-		while(data_[r] != '#' && data_[d] != '.' && data_[d] != '|' )
-		{	
-			++r;
-			d = down(r);
+        // left/right if down is wall or water and left/right is space
+        if ( (value(v + stride_) == '#' || value(v + stride_) == '~'))
+		{
+			if(value(v - 1) == '.' && value(v - 1 + stride_) != '.' && lr_ <= 0)
+			{
+				lr_ = -1;
+            	return v - 1;
+			}
+			if ( value(v + 1) == '.' && value(v + 1 + stride_) != '.' && lr_ >= 0)
+			{
+				lr_ = 1;
+				return v + 1;
+			}
 		}
-		if(data_[r] == '#')
-			return {r - 1, true};
-		return {r, false};		
-	}
+ 		return invalid_vertex_id;
+    }
     size_t size() const
     {
         return data_.size();
@@ -173,75 +156,51 @@ public:
     {
         return data_[v];
     }
-	void set_value(vertex_id_t v, T val)
-	{
-		data_[v] = val;
-	}
 };
 
-void drip_and_fill(auto& gc, vertex_id_t drip_from)
+int pt1(auto in)
 {
-	auto  d = drip_from;
-	auto dn = gc.down(drip_from);
-	while( dn != invalid_vertex_id && gc.value(dn) == '.')
-	{
-		d = dn;
-		dn = gc.down(dn);
-	}
-	int lc = -1;
-	int rc = -1;
-	while(d != drip_from)
-	{
-		auto[lp, lw] = gc.left(d);
-		auto[rp, rw] = gc.right(d);
-		if(lw && rw) 
-		{
-			for(; lp <= rp; ++lp)
-				gc.set_value(lp, '~');
-			d = gc.up(d);
-		}
-		else
-		{
-			for(auto l = lp; l <= rp; ++l)
-				gc.set_value(l, '|');
-			if(lp != rp && !(lp == lc && rp == rc))
-			{
-				if(!lw)
-					drip_and_fill(gc, lp);
-				if(!rw)
-					drip_and_fill(gc, rp);
-				lc = lp;
-				rc = rp;
-			}
-			else
-			{
-				lc = -1;
-				rc = -1;
-				d = gc.up(d);
-			}
-		}
-	}
-}
-
-auto pt12(auto in)
-{
-	timer t("p12");
+	timer t("p1");
 	auto& g = std::get<0>(in);
 	auto str = std::get<1>(in);
 	auto s = std::get<2>(in);
+	print(g, str, 0);
 	grid_custom gc(g, str);
-	drip_and_fill(gc, s);
-//	print(g, str, 1);
-	auto p = std::ranges::count_if(g, [](auto c){ return c == '|';});
-	auto w = std::ranges::count_if(g, [](auto c){ return c == '~';});
+	int cnt = 0;
+//	while(1)
+	while(cnt < 45)
+	{
+		auto v = gc[s];
+		if(v == invalid_vertex_id)
+			break;
+		auto vp = v;
+		v = s;
+		gc.reset();
+		while(v != invalid_vertex_id)
+		{
+			vp = v;
+			v = gc[vp];
+//			fmt::println("{} -> {}", vp, v);
+		}
+		g[vp] = '~';
+		++cnt;
+		print(g, str, cnt);
+	}
+//	print(g, str, cnt);
+	return cnt;
+}
 
-	return std::make_pair(p + w, w);
+int64_t pt2(auto const& in)
+{
+	timer t("p2");
+	return 0;
 }
 
 int main()
 {
 	auto in = get_input();
-	auto[p1,p2] = pt12(in);
+	auto p1 = pt1(in);
+	auto p2 = pt2(in);
 	fmt::println("pt1 = {}", p1);
 	fmt::println("pt2 = {}", p2);
 }
