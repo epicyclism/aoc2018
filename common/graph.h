@@ -98,7 +98,6 @@ auto bfs(G const& g, vertex_id_t id_from)
     }
     return recorder.rv;
 }  
-
 #if 0
 template<typename G, typename W, bool previous = false> 
 requires graph_container<G> 
