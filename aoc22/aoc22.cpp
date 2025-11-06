@@ -39,6 +39,8 @@ constexpr int rocky {0};
 constexpr int wet {1};
 constexpr int narrow {2};
 
+constexpr int border = 50;
+
 using vertex_t = int;
 using edge_t  = struct{ int wt_; int to_;};
 using graph_t = std::vector<std::vector<edge_t>>;
@@ -58,6 +60,8 @@ void add_edge(vertex_t from, vertex_t to, int weight, graph_t& g)
 
 bool cross_region( int type, int tool)
 {
+	if(tool >= 3)
+		fmt::println("bogus tool in cross region {}", tool);
     switch(type)
     {
         case rocky:
@@ -67,6 +71,7 @@ bool cross_region( int type, int tool)
         case narrow:
             return tool != climbing;
         default:
+			fmt::println("bogus cross_region {} {}", type, tool);
             return false;
     }
 }
@@ -78,14 +83,14 @@ struct cave_explorer
 	int tgty_;
 	int stride_;
 	std::vector<int64_t> cache_;
-	cave_explorer(int d, int x, int y) : depth_(d), tgtx_(x), tgty_(y), stride_(tgtx_ + 32), cache_(stride_ * (tgty_ + 32), -1)
+	cave_explorer(int d, int x, int y) : depth_(d), tgtx_(x), tgty_(y), stride_(tgtx_ + border), cache_(stride_ * (tgty_ + border), -1)
 	{}
-	int64_t erosion_level(int x, int y)
+	int erosion_level(int x, int y)
 	{
 		int hp = y * stride_ + x;
 		if(cache_[hp] != -1)
 			return cache_[hp];
-		int64_t gi = 0;
+		int gi = 0;
 		if((x == 0 && y == 0) || (x == tgtx_ && y == tgty_))
 			gi = 0;
 		else
@@ -107,6 +112,8 @@ struct cave_explorer
 	}
 	vertex_t vertex_id_from_region_tool(int x, int y, int tool)
 	{
+		if(tool >= 3)
+			fmt::println("bogus tool {} at vertex {} {}", tool, x, y);
     	return (y * stride_ + x) * 3 + tool;
 	}
 	// a region has three vertices, representing each 'tool',
@@ -135,11 +142,11 @@ struct cave_explorer
 	{
 		graph_t g;
 		// install the regions
-		for( int y = 0; y < tgty_ + 32; ++y)
+		for( int y = 0; y < tgty_ + border; ++y)
 			for(int x = 0; x < stride_; ++x)
 				install_region(x, y, g);
 		// connect them together
-		for( int y = 0; y < tgty_ + 32; ++y)
+		for( int y = 0; y < tgty_ + border - 1; ++y)
 			for(int x = 0; x < stride_ - 1; ++x)
 			{
 				for( int tool = 0; tool < 3; ++tool)
@@ -176,16 +183,17 @@ int pt1(auto const& in)
 
 std::vector<int> dijkstra(int from, graph_t const& g)
 {
-	std::vector<int> d(g.size(), -1);
+	std::vector<int> d(g.size(), std::numeric_limits<int>::max());
     auto pq_t_cmp = [&](auto& l, auto& r){ return d[l] > d[r];};
     std::priority_queue<int, std::vector<int>, decltype(pq_t_cmp)> q(pq_t_cmp);
     q.push(from);
+	d[from] = 0;
     while (!q.empty())
     {
         auto p = q.top(); q.pop();
         for( auto e : g[p])  
         {
-            if (d[e.to_] == -1 || d[e.to_] > d[p] + e.wt_)
+            if (d[e.to_] > d[p] + e.wt_)
             {
                 d[e.to_] = d[p] + e.wt_;
                 q.push(e.to_);
@@ -196,20 +204,30 @@ std::vector<int> dijkstra(int from, graph_t const& g)
 	return d;
 }
 
-int pt2(auto const& in)
+std::pair<int, int> pt12(auto const& in)
 {
-	timer t("p2");
+	timer t("p12");
 	cave_explorer exp(std::get<0>(in), std::get<1>(in), std::get<2>(in));
+	int p1 = 0;
+	for(int x = 0; x <= exp.tgtx_; ++x)
+		for(int y = 0; y <= exp.tgty_; ++y)
+			p1 += exp.type(x, y);
+			
 	auto g = exp.build_graph();
 	auto d = dijkstra(exp.vertex_id_from_region_tool(0, 0, torch), g);
-	return d[exp.vertex_id_from_region_tool(exp.tgtx_, exp.tgty_, torch)];
+	return {p1, d[exp.vertex_id_from_region_tool(exp.tgtx_, exp.tgty_, torch)]};
 }
+
+// 1069 too low!
+// 1071 too low!
+// 1082 too high!
+// 1079 wrong
 
 int main()
 {
 	auto in = get_input();
-	auto p1 = pt1(in);
-	auto p2 = pt2(in);
+	auto[p1, p2] = pt12(in);
+//	auto p2 = pt2(in);
 	fmt::println("pt1 = {}", p1);
 	fmt::println("pt2 = {}", p2);
 }
