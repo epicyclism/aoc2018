@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.21)
 include(FetchContent)
-project (aoc_spec)
+project (aoc_2018)
 
 function(dump_cmake_variables)
     get_cmake_property(_variableNames VARIABLES)
@@ -32,6 +32,11 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # dump_cmake_variables(CXX)
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+    add_compile_options(-fexperimental-library -mmacos-version-min=15.6)
+#    add_link_options(-Wl -macos_version_min=15.6)
+    add_link_options(-Wl)
+endif()
 
 FetchContent_Declare( ctre 
     GIT_REPOSITORY https://github.com/hanickadot/compile-time-regular-expressions
